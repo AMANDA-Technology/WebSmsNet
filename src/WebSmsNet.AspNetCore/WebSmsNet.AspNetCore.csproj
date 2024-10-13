@@ -2,8 +2,20 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <LangVersion>12</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <RootNamespace>WebSmsNet.AspNetCore</RootNamespace>
+        <Title>WebSmsNet AspNetCore</Title>
+        <Authors>AMANDA Technology GmbH</Authors>
+        <Description>Dependency injection of .Net client for linkmobility websms REST API</Description>
+        <Copyright>AMANDA Technology GmbH</Copyright>
+        <PackageProjectUrl>https://github.com/AMANDA-Technology/WebSmsNet</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/AMANDA-Technology/WebSmsNet</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
