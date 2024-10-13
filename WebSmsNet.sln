@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet", "src\WebSmsNet\WebSmsNet.csproj", "{86EDCC79-307B-42F4-A6D9-17487ECC4726}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Repository", "Repository", "{5480A68D-0F4B-43C0-B9FD-176E6AAEE925}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+		README.md = README.md
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet.Abstractions", "src\WebSmsNet.Abstractions\WebSmsNet.Abstractions\WebSmsNet.Abstractions.csproj", "{39EDAA35-1EE1-4E33-95C8-676F3B3B4C5E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet.AspNetCore", "src\WebSmsNet.AspNetCore\WebSmsNet.AspNetCore\WebSmsNet.AspNetCore.csproj", "{2B1C0523-B085-4467-8B4D-1B29E7FE2961}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet.UnitTests", "tests\WebSmsNet.UnitTests\WebSmsNet.UnitTests\WebSmsNet.UnitTests.csproj", "{07473A75-C68A-4F38-8FD6-E387B80CC038}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{86EDCC79-307B-42F4-A6D9-17487ECC4726}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86EDCC79-307B-42F4-A6D9-17487ECC4726}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86EDCC79-307B-42F4-A6D9-17487ECC4726}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86EDCC79-307B-42F4-A6D9-17487ECC4726}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39EDAA35-1EE1-4E33-95C8-676F3B3B4C5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39EDAA35-1EE1-4E33-95C8-676F3B3B4C5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39EDAA35-1EE1-4E33-95C8-676F3B3B4C5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39EDAA35-1EE1-4E33-95C8-676F3B3B4C5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B1C0523-B085-4467-8B4D-1B29E7FE2961}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B1C0523-B085-4467-8B4D-1B29E7FE2961}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B1C0523-B085-4467-8B4D-1B29E7FE2961}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B1C0523-B085-4467-8B4D-1B29E7FE2961}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07473A75-C68A-4F38-8FD6-E387B80CC038}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07473A75-C68A-4F38-8FD6-E387B80CC038}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07473A75-C68A-4F38-8FD6-E387B80CC038}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07473A75-C68A-4F38-8FD6-E387B80CC038}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
