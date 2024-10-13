@@ -15,3 +15,33 @@ With a special thanks to LINK Mobility Austria GmbH for the handy messaging serv
 [![CodeQL](https://github.com/AMANDA-Technology/WebSmsNet/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/AMANDA-Technology/WebSmsNet/actions/workflows/codeql-analysis.yml)
 
 [![SonarCloud](https://github.com/AMANDA-Technology/WebSmsNet/actions/workflows/sonar-analysis.yml/badge.svg)](https://github.com/AMANDA-Technology/WebSmsNet/actions/workflows/sonar-analysis.yml)
+
+### Usage
+
+#### Dependency injection:
+
+1. Register the client.
+    ```c#
+    builder.Services.WebSmsApiClient(options =>
+    {
+        options.AuthenticationType = AuthenticationType.Bearer;
+        options.AccessToken = "YOUR ACCESS_TOKEN";
+    });
+    ```
+
+2. Then inject `IWebSmsApiClient` it into your services.
+
+#### Sending a text message:
+
+Call the client.
+
+```c#
+webSmsApiClient.Messaging.SendTextMessageAsync(new()
+{
+   RecipientAddressList =
+   [
+       "YOUR Recipients MSISDN"
+   ],
+   MessageContent = "hi there! this is a test message."
+});
+```

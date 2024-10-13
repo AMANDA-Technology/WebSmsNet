@@ -11,22 +11,22 @@ public class WebSmsApiOptions
     /// <summary>
     /// Gets or sets the base URL for the WebSms API.
     /// </summary>
-    public required string BaseUrl { get; init; }
+    public required string BaseUrl { get; set; }
 
     /// <summary>
     /// Specifies the type of authentication to use with the WebSms API.
     /// </summary>
-    public AuthenticationType AuthenticationType { get; init; }
+    public AuthenticationType AuthenticationType { get; set; }
 
     /// <summary>
     /// Gets or sets the access token used for bearer authentication in the WebSms API.
     /// </summary>
-    public string? AccessToken { get; init; }
+    public string? AccessToken { get; set; }
 
     /// <value>
     /// Gets or sets the username for authentication when using Basic authentication type.
     /// </value>
-    public string? Username { get; init; }
+    public string? Username { get; set; }
 
     /// <summary>
     /// Gets or sets the password for user-based authentication.
@@ -36,5 +36,5 @@ public class WebSmsApiOptions
     /// to authenticate requests to the WebSms API when <see cref="AuthenticationType"/>
     /// is set to <see cref="AuthenticationType.Basic"/>.
     /// </remarks>
-    public string? Password { get; init; }
+    public string? Password { get; set; }
 }

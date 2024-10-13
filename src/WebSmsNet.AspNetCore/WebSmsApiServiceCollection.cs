@@ -15,12 +15,12 @@ namespace WebSmsNet.AspNetCore;
 public static class WebSmsApiServiceCollection
 {
     /// <summary>
-    /// Adds the websms API services to the specified IServiceCollection.
+    /// Adds the websms API client to the specified IServiceCollection.
     /// </summary>
     /// <param name="services">The IServiceCollection to add the services to.</param>
     /// <param name="configureOptions">An action to configure the websms options.</param>
-    /// <returns>The original IServiceCollection, with the websms services added.</returns>
-    public static IServiceCollection AddWebSmsServices(this IServiceCollection services, Action<WebSmsApiOptions> configureOptions)
+    /// <returns>The original IServiceCollection, with the websms api client added.</returns>
+    public static IServiceCollection WebSmsApiClient(this IServiceCollection services, Action<WebSmsApiOptions> configureOptions)
     {
         services.Configure(configureOptions);
 
