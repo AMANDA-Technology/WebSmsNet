@@ -9,11 +9,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Repository", "Repository", 
 		.gitignore = .gitignore
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet.Abstractions", "src\WebSmsNet.Abstractions\WebSmsNet.Abstractions\WebSmsNet.Abstractions.csproj", "{39EDAA35-1EE1-4E33-95C8-676F3B3B4C5E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet.Abstractions", "src\WebSmsNet.Abstractions\WebSmsNet.Abstractions.csproj", "{39EDAA35-1EE1-4E33-95C8-676F3B3B4C5E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet.AspNetCore", "src\WebSmsNet.AspNetCore\WebSmsNet.AspNetCore\WebSmsNet.AspNetCore.csproj", "{2B1C0523-B085-4467-8B4D-1B29E7FE2961}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet.AspNetCore", "src\WebSmsNet.AspNetCore\WebSmsNet.AspNetCore.csproj", "{2B1C0523-B085-4467-8B4D-1B29E7FE2961}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet.UnitTests", "tests\WebSmsNet.UnitTests\WebSmsNet.UnitTests\WebSmsNet.UnitTests.csproj", "{07473A75-C68A-4F38-8FD6-E387B80CC038}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSmsNet.Tests", "tests\WebSmsNet.Tests\WebSmsNet.Tests.csproj", "{07473A75-C68A-4F38-8FD6-E387B80CC038}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

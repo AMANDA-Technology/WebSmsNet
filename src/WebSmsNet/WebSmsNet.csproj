@@ -6,4 +6,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\WebSmsNet.Abstractions\WebSmsNet.Abstractions.csproj" />
+    </ItemGroup>
+
 </Project>
