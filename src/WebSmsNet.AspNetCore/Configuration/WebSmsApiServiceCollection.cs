@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 using WebSmsNet.Abstractions;
 using WebSmsNet.Abstractions.Configuration;
 
-namespace WebSmsNet.AspNetCore;
+namespace WebSmsNet.AspNetCore.Configuration;
 
 /// <summary>
 /// Provides extension methods for IServiceCollection to add websms API services.

@@ -57,7 +57,7 @@ public abstract class SmsSendRequest
     /// Type of the sender address (e.g., national, international, alphanumeric, shortcode).
     /// </summary>
     [JsonPropertyName("senderAddressType")]
-    public SenderAddressType? SenderAddressType { get; set; }
+    public Enums.AddressType? SenderAddressType { get; set; }
 
     /// <summary>
     /// Whether the transmission is a test (simulated).

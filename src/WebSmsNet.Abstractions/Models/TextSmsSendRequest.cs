@@ -27,5 +27,5 @@ public sealed class TextSmsSendRequest : SmsSendRequest
     /// Type of message (default or voice).
     /// </summary>
     [JsonPropertyName("messageType")]
-    public MessageType? MessageType { get; set; }
+    public WebhookMessageType? MessageType { get; set; }
 }

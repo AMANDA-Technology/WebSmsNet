@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using WebSmsNet.Abstractions.Serialization;
 
 namespace WebSmsNet;
 
@@ -20,15 +20,7 @@ public class WebSmsApiConnectionHandler(HttpClient httpClient)
     /// <summary>
     /// Gets the JsonSerializerOptions used for configuring the JSON serialization settings when communicating with the websms API.
     /// </summary>
-    protected virtual JsonSerializerOptions SerializerOptions => new(JsonSerializerDefaults.Web)
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        WriteIndented = false,
-        Converters =
-        {
-            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-        }
-    };
+    protected virtual JsonSerializerOptions SerializerOptions => WebSmsJsonSerialization.DefaultOptions;
 
     /// <summary>
     /// Sends a POST request to the specified endpoint with the provided data.
