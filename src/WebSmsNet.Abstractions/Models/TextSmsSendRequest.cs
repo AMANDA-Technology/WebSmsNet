@@ -9,6 +9,7 @@ namespace WebSmsNet.Abstractions.Models;
 /// </summary>
 [SuppressMessage("ReSharper", "UnusedMember.Global")]
 [SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
+[SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
 public sealed class TextSmsSendRequest : SmsSendRequest
 {
     /// <summary>

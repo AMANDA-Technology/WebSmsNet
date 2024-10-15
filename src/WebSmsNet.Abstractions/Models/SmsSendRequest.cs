@@ -8,6 +8,8 @@ namespace WebSmsNet.Abstractions.Models;
 /// Base class for all request types to send SMS messages.
 /// </summary>
 [SuppressMessage("ReSharper", "UnusedMember.Global")]
+[SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
+[SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
 public abstract class SmsSendRequest
 {
     /// <summary>
@@ -57,7 +59,7 @@ public abstract class SmsSendRequest
     /// Type of the sender address (e.g., national, international, alphanumeric, shortcode).
     /// </summary>
     [JsonPropertyName("senderAddressType")]
-    public Enums.AddressType? SenderAddressType { get; set; }
+    public AddressType? SenderAddressType { get; set; }
 
     /// <summary>
     /// Whether the transmission is a test (simulated).

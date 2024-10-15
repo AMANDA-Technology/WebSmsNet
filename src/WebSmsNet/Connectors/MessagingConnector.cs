@@ -1,4 +1,5 @@
-﻿using WebSmsNet.Abstractions.Connectors;
+﻿using System.Runtime.InteropServices;
+using WebSmsNet.Abstractions.Connectors;
 using WebSmsNet.Abstractions.Models;
 
 namespace WebSmsNet.Connectors;
@@ -9,10 +10,10 @@ public class MessagingConnector(WebSmsApiConnectionHandler connectionHandler) : 
     private const string MessagingApiBasePath = "/rest/smsmessaging";
 
     /// <inheritdoc />
-    public async Task<MessageSendResponse> SendTextMessageAsync(TextSmsSendRequest request) =>
-        await connectionHandler.PostAsync<MessageSendResponse>($"{MessagingApiBasePath}/text", request);
+    public async Task<MessageSendResponse> SendTextMessage(TextSmsSendRequest request, [Optional] CancellationToken cancellationToken) =>
+        await connectionHandler.Post<MessageSendResponse>($"{MessagingApiBasePath}/text", request, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<MessageSendResponse> SendBinaryMessageAsync(BinarySmsSendRequest request) =>
-        await connectionHandler.PostAsync<MessageSendResponse>($"{MessagingApiBasePath}/binary", request);
+    public async Task<MessageSendResponse> SendBinaryMessage(BinarySmsSendRequest request, [Optional] CancellationToken cancellationToken) =>
+        await connectionHandler.Post<MessageSendResponse>($"{MessagingApiBasePath}/binary", request, cancellationToken);
 }

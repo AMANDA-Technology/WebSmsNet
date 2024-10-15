@@ -31,7 +31,7 @@ public static class WebSmsWebhookRequest
         public required WebhookMessageType MessageType { get; init; }
 
         /// <summary>
-        /// 20-digit identification of your notification.
+        /// 20-digit identifiFcation of your notification.
         /// MessageTypes: text, binary, deliveryReport
         /// Example: "050f9005180a2a212469"
         /// </summary>
@@ -45,14 +45,6 @@ public static class WebSmsWebhookRequest
         /// </summary>
         [JsonPropertyName("senderAddress")]
         public required string SenderAddress { get; init; }
-
-        /// <summary>
-        /// Sender's address, can be international, national, or a shortcode.
-        /// MessageTypes: text, binary, deliveryReport
-        /// Example: "066012345678"
-        /// </summary>
-        [JsonPropertyName("recipientAddress")]
-        public required string RecipientAddress { get; init; }
     }
 
     /// <summary>
@@ -75,6 +67,14 @@ public static class WebSmsWebhookRequest
         /// </summary>
         [JsonPropertyName("senderAddressType")]
         public required AddressType SenderAddressType { get; init; }
+
+        /// <summary>
+        /// Sender's address, can be international, national, or a shortcode.
+        /// MessageTypes: text, binary, deliveryReport
+        /// Example: "066012345678"
+        /// </summary>
+        [JsonPropertyName("recipientAddress")]
+        public required string RecipientAddress { get; init; }
 
         /// <summary>
         /// Defines the number format of the mobile originated message.
@@ -123,7 +123,7 @@ public static class WebSmsWebhookRequest
     }
 
     /// <summary>
-    /// Represents a delivery report for a sent message.
+    /// Represents a delivery report for a message sent via websms services.
     /// </summary>
     public class DeliveryReport : Base
     {
@@ -169,7 +169,7 @@ public static class WebSmsWebhookRequest
         /// Example: DeliveredAs.Sms
         /// </summary>
         [JsonPropertyName("deliveredAs")]
-        public required DeliveredAs DeliveredAs { get; init; }
+        public DeliveredAs? DeliveredAs { get; init; }
 
         /// <summary>
         /// In the case of a delivery report, contains the optional submitted message ID.

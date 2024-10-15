@@ -1,38 +1,12 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using WebSmsNet.Abstractions;
-using WebSmsNet.Abstractions.Configuration;
+﻿using System.Text;
 
-namespace WebSmsNet.AspNetCore.Configuration;
+namespace WebSmsNet.Abstractions.Configuration;
 
 /// <summary>
-/// Provides extension methods for IServiceCollection to add websms API services.
+/// Provides extension methods for configuring HttpClient with WebSms API options.
 /// </summary>
-[SuppressMessage("ReSharper", "UnusedType.Global")]
-[SuppressMessage("ReSharper", "UnusedMember.Global")]
-public static class WebSmsApiServiceCollection
+public static class HttpClientExtension
 {
-    /// <summary>
-    /// Adds the websms API client to the specified IServiceCollection.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add the services to.</param>
-    /// <param name="configureOptions">An action to configure the websms options.</param>
-    /// <returns>The original IServiceCollection, with the websms api client added.</returns>
-    public static IServiceCollection WebSmsApiClient(this IServiceCollection services, Action<WebSmsApiOptions> configureOptions)
-    {
-        services.Configure(configureOptions);
-
-        services.AddHttpClient<WebSmsApiConnectionHandler>((provider, client) =>
-        {
-            var options = provider.GetRequiredService<IOptions<WebSmsApiOptions>>().Value;
-            client.ApplyWebSmsApiOptions(options);
-        });
-
-        return services.AddScoped<IWebSmsApiClient, WebSmsApiClient>();
-    }
-
     /// <summary>
     /// Applies the WebSms API options to the specified HttpClient.
     /// </summary>
