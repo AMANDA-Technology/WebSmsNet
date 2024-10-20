@@ -1,9 +1,9 @@
-using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using WebSmsNet.Abstractions;
 using WebSmsNet.Abstractions.Configuration;
+using WebSmsNet.Abstractions.Helpers;
 using WebSmsNet.Abstractions.Models;
 using WebSmsNet.Abstractions.Models.Enums;
 using WebSmsNet.Abstractions.Serialization;
@@ -77,7 +77,7 @@ public class MessagingTests
                 Environment.GetEnvironmentVariable("Websms_RecipientAddressList") ?? throw new InvalidOperationException("Missing RecipientAddressList")
             ],
             Test = true,
-            MessageContent = CreateBinaryMessageContentParts("hi there! ", "this is a test message ", "with 3 sms.").ToList(),
+            MessageContent = BinaryContent.CreateMessageContentParts("hi there! ", "this is a test message ", "with 3 sms.").ToList(),
             UserDataHeaderPresent = true
         };
 
@@ -88,19 +88,19 @@ public class MessagingTests
         response.StatusCode.Should().BeOneOf(WebSmsStatusCode.Ok, WebSmsStatusCode.OkQueued);
         response.SmsCount.Should().Be(3);
         response.ClientMessageId.Should().Be(request.ClientMessageId);
-        return;
+    }
 
-        // Function to create binary message content (List of Base64 encoded message parts)
-        IEnumerable<string> CreateBinaryMessageContentParts(params string[] messageTexts) =>
-            messageTexts.Select((messageText, index) => CreateMessagePart(index + 1, messageText));
+    [Fact]
+    public void ParseBinaryContent()
+    {
+        // Arrange
+        var binaryContent = BinaryContent.CreateMessageContentParts("hi there! ", "this is a test message ", "with 3 sms.").ToList();
 
-        // Function to create a binary message part
-        string CreateMessagePart(int index, string messageText) =>
-            Convert.ToBase64String(Header(index).Concat(Encoding.UTF8.GetBytes(messageText)).ToArray());
+        // Act
+        var text = BinaryContent.Parse(binaryContent, true);
 
-        // Function to create a binary message header
-        byte[] Header(int index) =>
-            [0x05, 0x00, 0x03, 0xCC, 0x02, (byte)index];
+        // Assert
+        text.Should().Be("hi there! this is a test message with 3 sms.");
     }
 
     [Fact]
