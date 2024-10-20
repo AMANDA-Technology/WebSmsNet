@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,7 +53,7 @@ public class MessagingTests
                 Environment.GetEnvironmentVariable("Websms_RecipientAddressList") ?? throw new InvalidOperationException("Missing RecipientAddressList")
             ],
             Test = true,
-            MessageContent = "hi there! this is a test message."
+            MessageContent = "hi there! this is a test message that fits into 1 sms."
         };
 
         // Act
@@ -76,7 +77,8 @@ public class MessagingTests
                 Environment.GetEnvironmentVariable("Websms_RecipientAddressList") ?? throw new InvalidOperationException("Missing RecipientAddressList")
             ],
             Test = true,
-            MessageContent = [Convert.ToBase64String("hi there! this is a test message."u8.ToArray())]
+            MessageContent = CreateBinaryMessageContentParts("hi there! ", "this is a test message ", "with 3 sms.").ToList(),
+            UserDataHeaderPresent = true
         };
 
         // Act
@@ -84,8 +86,21 @@ public class MessagingTests
 
         // Assert
         response.StatusCode.Should().BeOneOf(WebSmsStatusCode.Ok, WebSmsStatusCode.OkQueued);
-        response.SmsCount.Should().Be(1);
+        response.SmsCount.Should().Be(3);
         response.ClientMessageId.Should().Be(request.ClientMessageId);
+        return;
+
+        // Function to create binary message content (List of Base64 encoded message parts)
+        IEnumerable<string> CreateBinaryMessageContentParts(params string[] messageTexts) =>
+            messageTexts.Select((messageText, index) => CreateMessagePart(index + 1, messageText));
+
+        // Function to create a binary message part
+        string CreateMessagePart(int index, string messageText) =>
+            Convert.ToBase64String(Header(index).Concat(Encoding.UTF8.GetBytes(messageText)).ToArray());
+
+        // Function to create a binary message header
+        byte[] Header(int index) =>
+            [0x05, 0x00, 0x03, 0xCC, 0x02, (byte)index];
     }
 
     [Fact]
