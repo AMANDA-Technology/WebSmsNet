@@ -160,7 +160,7 @@ public static class WebSmsWebhookRequest
         /// Example: 2013-05-27T13:36:00.000+02:00
         /// </summary>
         [JsonPropertyName("deliveredOn")]
-        public required DateTimeOffset DeliveredOn { get; init; }
+        public DateTimeOffset? DeliveredOn { get; init; }
 
         /// <summary>
         /// Delivery method used.
