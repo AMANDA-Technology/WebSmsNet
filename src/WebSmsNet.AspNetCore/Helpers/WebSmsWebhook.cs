@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using WebSmsNet.Abstractions.Models;
+using WebSmsNet.Abstractions.Models.Enums;
 using WebSmsNet.Abstractions.Serialization;
 
 namespace WebSmsNet.AspNetCore.Helpers;
@@ -80,4 +81,24 @@ public static class WebSmsWebhook
                 throw new ArgumentOutOfRangeException(nameof(webhookRequest), webhookRequest.GetType().FullName, "Unknown WebSmsWebhookRequest type");
         }
     }
+
+    /// <summary>
+    /// Create an OK response for a webhook request.
+    /// </summary>
+    /// <returns></returns>
+    public static WebSmsWebhookResponse CreateOkResponse() => new()
+    {
+        StatusCode = WebSmsStatusCode.Ok,
+        StatusMessage = "OK"
+    };
+
+    /// <summary>
+    /// Create an ERROR response for a webhook request.
+    /// </summary>
+    /// <returns></returns>
+    public static WebSmsWebhookResponse CreateErrorResponse(string errorMessage) => new()
+    {
+        StatusCode = WebSmsStatusCode.InternalError,
+        StatusMessage = errorMessage
+    };
 }
