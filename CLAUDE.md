@@ -14,16 +14,16 @@ Unofficial .NET client library for the [LINK Mobility websms Messaging REST API 
 | Layer            | Technology                                                                   |
 | ---------------- | ---------------------------------------------------------------------------- |
 | Language         | C# 13 (`<LangVersion>13</LangVersion>`)                                      |
-| Framework        | .NET 9 (`net9.0`)                                                            |
+| Framework        | .NET 9 (`net9.0`) for libraries; .NET 10 (`net10.0`) for tests               |
 | HTTP             | `System.Net.Http.HttpClient` via `IHttpClientFactory` (ASP.NET Core package) |
 | Serialization    | `System.Text.Json` (web defaults + camel-case enum converter)                |
 | DI integration   | ASP.NET Core (`Microsoft.Extensions.DependencyInjection`, `Microsoft.Extensions.Http`) |
-| Testing          | xUnit 2.9 + FluentAssertions 6.12 + Coverlet (`WebSmsNet.Tests`)             |
+| Testing          | NUnit + Shouldly + NSubstitute + Bogus + coverlet.collector                  |
 | Build            | MSBuild (SDK-style csproj) — `GeneratePackageOnBuild` + `GenerateDocumentationFile` |
 | CI/CD            | GitHub Actions (`main.yml`, `codeql-analysis.yml`, `sonar-analysis.yml`)     |
 | License          | MIT                                                                          |
 
-> Note: the testing stack (xUnit + FluentAssertions) differs from the AMANDA-Technology org default (NUnit + Shouldly). Match the **existing** project style when adding tests here — do not migrate the test framework as a side-effect of another change.
+> Note: the testing stack is aligned with the AMANDA-Technology org default (NUnit + Shouldly).
 
 ## Solution Structure
 
@@ -46,7 +46,9 @@ WebSmsNet.sln
       Configuration/                     -- AddWebSmsApiClient(IServiceCollection, ...) extension
       Helpers/                           -- WebSmsWebhook parsing/matching helpers for webhook endpoints
   tests/
-    WebSmsNet.Tests/                   -- xUnit tests (DI, serialization, webhook parse, live send when env set)
+    WebSmsNet.UnitTests/               -- NUnit unit tests
+    WebSmsNet.IntegrationTests/        -- NUnit integration tests (WireMock.Net)
+    WebSmsNet.E2eTests/                -- NUnit end-to-end tests
   build/
     GetBuildVersion.psm1               -- PowerShell version helper used by the release workflow
   .github/
@@ -57,7 +59,7 @@ WebSmsNet.sln
 ### Dependency Graph
 
 ```
-WebSmsNet.Tests --> WebSmsNet.AspNetCore --> WebSmsNet --> WebSmsNet.Abstractions
+WebSmsNet.*Tests --> WebSmsNet.AspNetCore --> WebSmsNet --> WebSmsNet.Abstractions
 ```
 
 ## Build Commands
@@ -70,7 +72,7 @@ dotnet build   WebSmsNet.sln -c Release       # also produces .nupkg (GeneratePa
 dotnet test    WebSmsNet.sln
 
 # Run just the tests (env vars required for the live-send tests — see below)
-dotnet test tests/WebSmsNet.Tests/WebSmsNet.Tests.csproj
+dotnet test tests/WebSmsNet.UnitTests/WebSmsNet.UnitTests.csproj
 
 # Pack explicitly
 dotnet pack WebSmsNet.sln -c Release
@@ -78,7 +80,7 @@ dotnet pack WebSmsNet.sln -c Release
 
 ### Env vars for live integration tests
 
-The current `MessagingTests` fixture constructs a real `WebSmsApiClient` against `https://api.linkmobility.eu/` and reads credentials / recipient from the environment. Tests that hit the API will fail without these; pure serialization / parsing tests do not need them:
+The current `MessagingLiveTests` fixture constructs a real `WebSmsApiClient` against `https://api.linkmobility.eu/` and reads credentials / recipient from the environment. Tests that hit the API will be skipped (using `Assume.That`) without these:
 
 | Variable                        | Purpose                                           |
 | ------------------------------- | ------------------------------------------------- |
@@ -123,10 +125,10 @@ The current `MessagingTests` fixture constructs a real `WebSmsApiClient` against
 - Binary payloads are Base64-encoded segments optionally prefixed by a UDH; `BinaryContent.Parse` / `BinaryContent.CreateMessageContentParts` split and reassemble concatenated SMS segments.
 
 ### Testing Pattern (current state)
-- **Framework:** xUnit 2.9 + FluentAssertions 6.12 + Coverlet. `[Fact]` for individual tests.
-- **Locations:** a single test project (`tests/WebSmsNet.Tests`). Tests cover DI wiring, serialization/deserialization of `MessageSendResponse`, webhook parsing, `BinaryContent` round-trip, and live send (requires env vars).
-- **Live-hit tests:** construct the client in a field initializer that reads `Websms_AccessToken` / `Websms_RecipientAddressList` from the environment and throws if absent. Do not hardcode credentials.
-- **Assertions:** FluentAssertions (`result.Should().Be(...)`). Match existing style when adding tests — do not mix in NUnit or Shouldly.
+- **Framework:** NUnit 4.x + Shouldly 4.x + NSubstitute 5.x + Bogus + coverlet.collector.
+- **Locations:** split into `WebSmsNet.UnitTests`, `WebSmsNet.IntegrationTests`, and `WebSmsNet.E2eTests`.
+- **Live-hit tests:** use `Assume.That` to skip tests when `Websms_AccessToken` / `Websms_RecipientAddressList` are missing.
+- **Assertions:** Shouldly (`result.ShouldBe(...)`).
 
 ## Important File Locations
 
@@ -150,7 +152,8 @@ The current `MessagingTests` fixture constructs a real `WebSmsApiClient` against
 | Response DTOs                  | `src/WebSmsNet.Abstractions/Models/MessageSendResponse.cs`                 |
 | Webhook DTOs                   | `src/WebSmsNet.Abstractions/Models/WebSmsWebhookRequest.cs`, `WebSmsWebhookResponse.cs` |
 | Enums                          | `src/WebSmsNet.Abstractions/Models/Enums/`                                 |
-| Tests                          | `tests/WebSmsNet.Tests/MessagingTests.cs`                                  |
+| Unit Tests                     | `tests/WebSmsNet.UnitTests/MessagingTests.cs`                              |
+| Live Tests                     | `tests/WebSmsNet.UnitTests/MessagingLiveTests.cs`                          |
 | CI build & publish             | `.github/workflows/main.yml`                                               |
 | CodeQL                         | `.github/workflows/codeql-analysis.yml`                                    |
 | SonarCloud                     | `.github/workflows/sonar-analysis.yml`                                     |
@@ -158,7 +161,7 @@ The current `MessagingTests` fixture constructs a real `WebSmsApiClient` against
 
 ## Known Constraints and Gotchas
 
-1. **Live tests need real credentials.** `MessagingTests.SendTextMessage` / `SendBinaryMessage` construct a `WebSmsApiClient` in a field initializer and will throw if `Websms_AccessToken` / `Websms_RecipientAddressList` are missing — the *whole test class* cannot instantiate. When running tests locally or in CI without credentials, expect these to fail at test discovery/setup. Parse / serialize / DI tests do not need env vars but live alongside the failing-constructor fixture.
+1. **Live tests are skipped when credentials are missing.** `MessagingLiveTests.SendTextMessage` / `SendBinaryMessage` use `Assume.That` to check for `Websms_AccessToken` / `Websms_RecipientAddressList`.
 2. **`WebSmsStatusCode` is an integer on the wire.** The enum's members use explicit websms codes (e.g., `Ok = 2000`). Serialize via `JsonNumberEnumConverter<WebSmsStatusCode>` — never as a camelCase string, or the API will reject the payload.
 3. **Webhook discriminator is `messageType`.** `WebSmsWebhookRequestConverter` dispatches on `"text"`, `"binary"`, `"deliveryReport"`; any other value throws `JsonException`. If websms ever adds a new webhook type, extend the switch there and add a sibling type under `WebSmsWebhookRequest`.
 4. **`WebSmsApiConnectionHandler` owns its `HttpClient` lifecycle only when constructed via `WebSmsApiOptions`.** In the DI path, `IHttpClientFactory` owns the socket. Do not dispose the handler-held client in derived classes.

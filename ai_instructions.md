@@ -25,15 +25,15 @@ If anything here conflicts with `CLAUDE.md`, **this file wins for agent behavior
 | Concern        | Value                                                              |
 | -------------- | ------------------------------------------------------------------ |
 | Language       | C# 13 (`<LangVersion>13</LangVersion>`)                            |
-| Framework      | .NET 9 (`net9.0`) — all three library projects and the test project |
+| Framework      | .NET 9 (`net9.0`) for libraries; .NET 10 (`net10.0`) for test projects |
 | JSON           | `System.Text.Json` — **never** add Newtonsoft.Json                 |
 | DI             | `Microsoft.Extensions.DependencyInjection` + `Microsoft.Extensions.Http` (typed clients) |
-| Tests          | xUnit 2.9 + FluentAssertions 6.12 + Coverlet                       |
+| Tests          | NUnit + Shouldly + NSubstitute + Bogus + coverlet.collector        |
 | Nullability    | `<Nullable>enable</Nullable>` everywhere                           |
 | XML docs       | `<GenerateDocumentationFile>true</GenerateDocumentationFile>` on all three shipping projects |
 | Packaging      | `<GeneratePackageOnBuild>true</GeneratePackageOnBuild>` — build produces `.nupkg` for each library |
 
-If a change would require bumping any of these (e.g., moving to `net10.0` or swapping xUnit for NUnit), **stop and escalate**. This project intentionally lags its siblings (BexioApiNet, CashCtrlApiNet) and must not be migrated silently.
+If a change would require bumping any of these (e.g., moving libraries to `net10.0` or swapping NUnit for another framework), **stop and escalate**. This project intentionally lags its siblings (BexioApiNet, CashCtrlApiNet) and must not be migrated silently.
 
 ## 3. Architecture Patterns (do not deviate)
 
@@ -119,11 +119,11 @@ If a change would require bumping any of these (e.g., moving to `net10.0` or swa
 
 ## 6. Testing Rules
 
-1. **Framework:** xUnit 2.9 + FluentAssertions 6.12. Use `[Fact]` for individual tests. Do not introduce `[Theory]` where a `[Fact]` suffices.
-2. **Do not migrate the testing stack.** NUnit, Shouldly, NSubstitute, Bogus, WireMock.Net are used by sibling libraries (BexioApiNet, CashCtrlApiNet) — they are **not** adopted here. A test-framework migration is its own PR, not a side-effect.
+1. **Framework:** NUnit 4.x + Shouldly 4.x + NSubstitute 5.x + Bogus + coverlet.collector. Use `[Test]` for individual tests and `[TestFixture]` for classes.
+2. **Projects:** Tests are split into `WebSmsNet.UnitTests`, `WebSmsNet.IntegrationTests`, and `WebSmsNet.E2eTests`. Use the appropriate project for new tests.
 3. **New connector methods require a test.** At minimum: a DI-wiring test verifying the method is reachable through `IWebSmsApiClient`, and a serialization round-trip for the request / response DTOs involved.
-4. **Live-send tests** use env vars (`Websms_AccessToken`, `Websms_RecipientAddressList`) and **must throw** at setup when the vars are absent, matching the existing `MessagingTests` pattern. Do not silently `Skip` tests or add a "local dev" fallback that hardcodes credentials.
-5. **No mocked handler frameworks.** For isolation, construct a fake `WebSmsApiConnectionHandler` subclass in the test project — the handler's virtual members make this straightforward. Do not pull in NSubstitute / Moq.
+4. **Live API tests** use env vars (`Websms_AccessToken`, `Websms_RecipientAddressList`) and **must skip** (using `Assume.That`) when the vars are absent.
+5. **Mocking:** Use NSubstitute for mocking dependencies. For isolation, you can also construct a fake `WebSmsApiConnectionHandler` subclass in the test project.
 6. Do **not** add test-only code paths to production types. If a test needs an override, derive from the handler in the test project.
 7. Never commit real tokens, recipient MSISDNs, or customer data in test fixtures. Read them from environment variables.
 
@@ -158,7 +158,7 @@ Do not:
 - Instantiate `HttpClient` directly in new code. Always route through the injected / constructed `WebSmsApiConnectionHandler`.
 - Throw bare exceptions from connector methods for ordinary API failures — rely on `EnsureSuccess` (and its override points) so consumers can plug in custom error translation.
 - Convert `sealed record` response types to `class` or vice-versa without explicit need — both changes are breaking.
-- Add Newtonsoft.Json, AutoMapper, MediatR, NUnit, Shouldly, NSubstitute, Moq, or any framework not already on the dependency list.
+- Add Newtonsoft.Json, AutoMapper, MediatR, xUnit, FluentAssertions, Moq, or any framework not already on the dependency list.
 - Skip XML doc comments on public members — they are compiled into the NuGet packages and missing docs break the build.
 - Hardcode endpoint paths in multiple places — use the `const string` pattern on the connector.
 - Silently change the `WebSmsStatusCode` serialization from integer to string, or drop `[JsonNumberEnumConverter<WebSmsStatusCode>]` from a response property.
