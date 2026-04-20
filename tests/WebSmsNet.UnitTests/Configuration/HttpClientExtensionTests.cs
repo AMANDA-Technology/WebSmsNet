@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Text;
 using Shouldly;
 using WebSmsNet.Abstractions.Configuration;

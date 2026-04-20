@@ -28,7 +28,7 @@ public static class BinaryContent
     }
 
     private static byte[] SkipHeader(byte[] binaryData) =>
-        binaryData.Skip(binaryData[0] + 1).ToArray();
+        binaryData.Length is 0 ? binaryData : binaryData.Skip(binaryData[0] + 1).ToArray();
 
     /// <summary>
     /// Create binary message content (List of Base64 encoded message parts)

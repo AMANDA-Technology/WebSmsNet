@@ -51,6 +51,15 @@ public class BinaryContentTests
     }
 
     [Test]
+    public void Parse_EmptyStringPart_WithUdh_ReturnsEmptyString()
+    {
+        // An empty Base64 string decodes to an empty byte array; SkipHeader must not crash on it.
+        var result = BinaryContent.Parse([""], true);
+
+        result.ShouldBe(string.Empty);
+    }
+
+    [Test]
     public void CreateMessageContentParts_SingleMessage_ReturnsSinglePart()
     {
         var parts = BinaryContent.CreateMessageContentParts("Hello").ToList();
