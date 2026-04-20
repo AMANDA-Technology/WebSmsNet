@@ -1,6 +1,6 @@
 using System.Text.Json;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Shouldly;
 using WebSmsNet.Abstractions;
 using WebSmsNet.Abstractions.Configuration;
 using WebSmsNet.Abstractions.Helpers;
@@ -10,18 +10,12 @@ using WebSmsNet.Abstractions.Serialization;
 using WebSmsNet.AspNetCore.Configuration;
 using WebSmsNet.AspNetCore.Helpers;
 
-namespace WebSmsNet.Tests;
+namespace WebSmsNet.UnitTests;
 
+[TestFixture]
 public class MessagingTests
 {
-    private readonly IWebSmsApiClient _webSmsApiClient = new WebSmsApiClient(new WebSmsApiOptions
-    {
-        BaseUrl = "https://api.linkmobility.eu/",
-        AuthenticationType = AuthenticationType.Bearer,
-        AccessToken = Environment.GetEnvironmentVariable("Websms_AccessToken") ?? throw new InvalidOperationException("Missing AccessToken")
-    });
-
-    [Fact]
+    [Test]
     public void DependencyInjection()
     {
         // Arrange
@@ -38,59 +32,10 @@ public class MessagingTests
         // Assert
         var provider = services.BuildServiceProvider();
         var webSmsApiClient = provider.GetService<IWebSmsApiClient>();
-        Assert.NotNull(webSmsApiClient);
+        webSmsApiClient.ShouldNotBeNull();
     }
 
-    [Fact]
-    public async Task SendTextMessage()
-    {
-        // Arrange
-        var request = new TextSmsSendRequest
-        {
-            ClientMessageId = Guid.NewGuid().ToString(),
-            RecipientAddressList =
-            [
-                Environment.GetEnvironmentVariable("Websms_RecipientAddressList") ?? throw new InvalidOperationException("Missing RecipientAddressList")
-            ],
-            Test = true,
-            MessageContent = "hi there! this is a test message that fits into 1 sms."
-        };
-
-        // Act
-        var response = await _webSmsApiClient.Messaging.SendTextMessage(request);
-
-        // Assert
-        response.StatusCode.Should().BeOneOf(WebSmsStatusCode.Ok, WebSmsStatusCode.OkQueued);
-        response.SmsCount.Should().Be(1);
-        response.ClientMessageId.Should().Be(request.ClientMessageId);
-    }
-
-    [Fact]
-    public async Task SendBinaryMessage()
-    {
-        // Arrange
-        var request = new BinarySmsSendRequest
-        {
-            ClientMessageId = Guid.NewGuid().ToString(),
-            RecipientAddressList =
-            [
-                Environment.GetEnvironmentVariable("Websms_RecipientAddressList") ?? throw new InvalidOperationException("Missing RecipientAddressList")
-            ],
-            Test = true,
-            MessageContent = BinaryContent.CreateMessageContentParts("hi there! ", "this is a test message ", "with 3 sms.").ToList(),
-            UserDataHeaderPresent = true
-        };
-
-        // Act
-        var response = await _webSmsApiClient.Messaging.SendBinaryMessage(request);
-
-        // Assert
-        response.StatusCode.Should().BeOneOf(WebSmsStatusCode.Ok, WebSmsStatusCode.OkQueued);
-        response.SmsCount.Should().Be(3);
-        response.ClientMessageId.Should().Be(request.ClientMessageId);
-    }
-
-    [Fact]
+    [Test]
     public void ParseBinaryContent()
     {
         // Arrange
@@ -100,10 +45,10 @@ public class MessagingTests
         var text = BinaryContent.Parse(binaryContent, true);
 
         // Assert
-        text.Should().Be("hi there! this is a test message with 3 sms.");
+        text.ShouldBe("hi there! this is a test message with 3 sms.");
     }
 
-    [Fact]
+    [Test]
     public void MessageSendResponse_Serialize()
     {
         // Arrange
@@ -123,18 +68,18 @@ public class MessagingTests
         var responseJson = JsonSerializer.Serialize(response, options);
 
         // Assert
-        responseJson.Should().BeEquivalentTo("""
-                                             {
-                                               "clientMessageId": "5224d313-5c32-4024-aa04-61cc6bd2509d",
-                                               "smsCount": 1,
-                                               "statusCode": 2000,
-                                               "statusMessage": "Test OK",
-                                               "transferId": "6fd522e7126d4345"
-                                             }
-                                             """);
+        responseJson.ShouldBe("""
+                               {
+                                 "clientMessageId": "5224d313-5c32-4024-aa04-61cc6bd2509d",
+                                 "smsCount": 1,
+                                 "statusCode": 2000,
+                                 "statusMessage": "Test OK",
+                                 "transferId": "6fd522e7126d4345"
+                               }
+                               """);
     }
 
-    [Fact]
+    [Test]
     public void MessageSendResponse_Deserialize()
     {
         // Arrange
@@ -152,8 +97,8 @@ public class MessagingTests
         var response = JsonSerializer.Deserialize<MessageSendResponse>(responseJson, WebSmsJsonSerialization.DefaultOptions);
 
         // Assert
-        Assert.NotNull(response);
-        response.Should().Be(new MessageSendResponse
+        response.ShouldNotBeNull();
+        response.ShouldBe(new MessageSendResponse
         {
             ClientMessageId = "5224d313-5c32-4024-aa04-61cc6bd2509d",
             SmsCount = 1,
@@ -163,7 +108,7 @@ public class MessagingTests
         });
     }
 
-    [Fact]
+    [Test]
     public void WebhookRequest_Parse_Text()
     {
         // Arrange
@@ -183,12 +128,12 @@ public class MessagingTests
         var request = WebSmsWebhook.Parse(json);
 
         // Assert
-        request.Should().BeOfType<WebSmsWebhookRequest.Text>();
-        request.MessageType.Should().Be(WebhookMessageType.Text);
-        request.NotificationId.Should().Be("02c1d0051949fe70cbfa");
+        request.ShouldBeOfType<WebSmsWebhookRequest.Text>();
+        request.MessageType.ShouldBe(WebhookMessageType.Text);
+        request.NotificationId.ShouldBe("02c1d0051949fe70cbfa");
     }
 
-    [Fact]
+    [Test]
     public void WebhookRequest_Match_Text()
     {
         // Arrange
@@ -205,16 +150,16 @@ public class MessagingTests
                             """;
 
         // Act
-        var request = WebSmsWebhook.Parse(json).Match(
+        var result = WebSmsWebhook.Parse(json).Match(
             onText: _ => true,
             onBinary: _ => false,
             onDeliveryReport: _ => false);
 
         // Assert
-        request.Should().BeTrue();
+        result.ShouldBeTrue();
     }
 
-    [Fact]
+    [Test]
     public void WebhookRequest_Parse_DeliveryReport()
     {
         // Arrange
@@ -235,9 +180,9 @@ public class MessagingTests
         var request = WebSmsWebhook.Parse(json);
 
         // Assert
-        Assert.NotNull(request);
-        request.Should().BeOfType<WebSmsWebhookRequest.DeliveryReport>();
-        request.MessageType.Should().Be(WebhookMessageType.DeliveryReport);
-        request.NotificationId.Should().Be("5280675327899111111");
+        request.ShouldNotBeNull();
+        request.ShouldBeOfType<WebSmsWebhookRequest.DeliveryReport>();
+        request.MessageType.ShouldBe(WebhookMessageType.DeliveryReport);
+        request.NotificationId.ShouldBe("5280675327899111111");
     }
 }
