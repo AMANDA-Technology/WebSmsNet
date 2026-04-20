@@ -158,7 +158,7 @@ Do not:
 - Instantiate `HttpClient` directly in new code. Always route through the injected / constructed `WebSmsApiConnectionHandler`.
 - Throw bare exceptions from connector methods for ordinary API failures — rely on `EnsureSuccess` (and its override points) so consumers can plug in custom error translation.
 - Convert `sealed record` response types to `class` or vice-versa without explicit need — both changes are breaking.
-- Add Newtonsoft.Json, AutoMapper, MediatR, NUnit, Shouldly, NSubstitute, Moq, or any framework not already on the dependency list.
+- Add Newtonsoft.Json, AutoMapper, MediatR, xUnit, FluentAssertions, Moq, or any framework not already on the dependency list.
 - Skip XML doc comments on public members — they are compiled into the NuGet packages and missing docs break the build.
 - Hardcode endpoint paths in multiple places — use the `const string` pattern on the connector.
 - Silently change the `WebSmsStatusCode` serialization from integer to string, or drop `[JsonNumberEnumConverter<WebSmsStatusCode>]` from a response property.

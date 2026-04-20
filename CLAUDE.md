@@ -59,7 +59,7 @@ WebSmsNet.sln
 ### Dependency Graph
 
 ```
-WebSmsNet.Tests --> WebSmsNet.AspNetCore --> WebSmsNet --> WebSmsNet.Abstractions
+WebSmsNet.*Tests --> WebSmsNet.AspNetCore --> WebSmsNet --> WebSmsNet.Abstractions
 ```
 
 ## Build Commands
