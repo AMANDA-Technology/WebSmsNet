@@ -152,7 +152,7 @@ The current `MessagingLiveTests` fixture constructs a real `WebSmsApiClient` aga
 | Response DTOs                  | `src/WebSmsNet.Abstractions/Models/MessageSendResponse.cs`                 |
 | Webhook DTOs                   | `src/WebSmsNet.Abstractions/Models/WebSmsWebhookRequest.cs`, `WebSmsWebhookResponse.cs` |
 | Enums                          | `src/WebSmsNet.Abstractions/Models/Enums/`                                 |
-| Unit Tests                     | `tests/WebSmsNet.UnitTests/MessagingTests.cs`                              |
+| Unit Tests                     | `tests/WebSmsNet.UnitTests/`                                               |
 | Live Tests                     | `tests/WebSmsNet.UnitTests/MessagingLiveTests.cs`                          |
 | CI build & publish             | `.github/workflows/main.yml`                                               |
 | CodeQL                         | `.github/workflows/codeql-analysis.yml`                                    |
