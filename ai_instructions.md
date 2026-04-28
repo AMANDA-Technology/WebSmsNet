@@ -25,15 +25,21 @@ If anything here conflicts with `CLAUDE.md`, **this file wins for agent behavior
 | Concern        | Value                                                              |
 | -------------- | ------------------------------------------------------------------ |
 | Language       | C# 13 (`<LangVersion>13</LangVersion>`)                            |
-| Framework      | .NET 9 (`net9.0`) — all three library projects and the test project |
+| Framework      | .NET 9 (`net9.0`) — all three library projects and both test projects |
 | JSON           | `System.Text.Json` — **never** add Newtonsoft.Json                 |
 | DI             | `Microsoft.Extensions.DependencyInjection` + `Microsoft.Extensions.Http` (typed clients) |
-| Tests          | xUnit 2.9 + FluentAssertions 6.12 + Coverlet                       |
+| Tests          | xUnit 2.9 + FluentAssertions 6.12 + Coverlet (`WebSmsNet.Tests` — DI / serialization / webhook / live-send); **plus** NUnit 4 + Shouldly 4 + NSubstitute 5 + Coverlet (`WebSmsNet.UnitTests` — isolated unit tests for client + handler + connector) |
 | Nullability    | `<Nullable>enable</Nullable>` everywhere                           |
 | XML docs       | `<GenerateDocumentationFile>true</GenerateDocumentationFile>` on all three shipping projects |
 | Packaging      | `<GeneratePackageOnBuild>true</GeneratePackageOnBuild>` — build produces `.nupkg` for each library |
 
-If a change would require bumping any of these (e.g., moving to `net10.0` or swapping xUnit for NUnit), **stop and escalate**. This project intentionally lags its siblings (BexioApiNet, CashCtrlApiNet) and must not be migrated silently.
+If a change would require bumping any of these (e.g., moving to `net10.0`), **stop and escalate**. This project intentionally lags its siblings (BexioApiNet, CashCtrlApiNet) on framework version and must not be migrated silently.
+
+> **Note on the testing stack.** The org-default NUnit + Shouldly + NSubstitute stack has been **added alongside** the existing xUnit project (Wave 3, Epic #3) — `WebSmsNet.UnitTests` is the new home for isolated unit tests. The xUnit `WebSmsNet.Tests` project was **not** migrated and must not be migrated silently; that conversion is its own ticket. When adding tests:
+>
+> - **Isolated unit tests** (mocked `HttpClient`, no env vars, fast): add to `WebSmsNet.UnitTests` using NUnit + Shouldly + NSubstitute.
+> - **DI / serialization / webhook / live-send tests** (run the real wiring or hit the websms API): keep adding to `WebSmsNet.Tests` using xUnit + FluentAssertions.
+> - Do **not** mix the two stacks within a single project.
 
 ## 3. Architecture Patterns (do not deviate)
 
@@ -119,13 +125,18 @@ If a change would require bumping any of these (e.g., moving to `net10.0` or swa
 
 ## 6. Testing Rules
 
-1. **Framework:** xUnit 2.9 + FluentAssertions 6.12. Use `[Fact]` for individual tests. Do not introduce `[Theory]` where a `[Fact]` suffices.
-2. **Do not migrate the testing stack.** NUnit, Shouldly, NSubstitute, Bogus, WireMock.Net are used by sibling libraries (BexioApiNet, CashCtrlApiNet) — they are **not** adopted here. A test-framework migration is its own PR, not a side-effect.
-3. **New connector methods require a test.** At minimum: a DI-wiring test verifying the method is reachable through `IWebSmsApiClient`, and a serialization round-trip for the request / response DTOs involved.
-4. **Live-send tests** use env vars (`Websms_AccessToken`, `Websms_RecipientAddressList`) and **must throw** at setup when the vars are absent, matching the existing `MessagingTests` pattern. Do not silently `Skip` tests or add a "local dev" fallback that hardcodes credentials.
-5. **No mocked handler frameworks.** For isolation, construct a fake `WebSmsApiConnectionHandler` subclass in the test project — the handler's virtual members make this straightforward. Do not pull in NSubstitute / Moq.
-6. Do **not** add test-only code paths to production types. If a test needs an override, derive from the handler in the test project.
-7. Never commit real tokens, recipient MSISDNs, or customer data in test fixtures. Read them from environment variables.
+1. **Two test projects, two stacks — pick the right one for the test you are writing:**
+   - `tests/WebSmsNet.Tests` — **xUnit 2.9 + FluentAssertions 6.12**. `[Fact]` for individual tests, `result.Should().Be(...)` assertions. This is where DI-wiring tests, serialization round-trips, webhook-parsing tests, and live-send tests live.
+   - `tests/WebSmsNet.UnitTests` — **NUnit 4 + Shouldly 4 + NSubstitute 5**. `[TestFixture]` + `[Test]`, `x.ShouldBe(y)` / `act.ShouldThrow<T>()` assertions, `MethodName_Condition_ExpectedResult` naming. This is where isolated unit tests for `WebSmsApiClient`, `WebSmsApiConnectionHandler`, and `MessagingConnector` live (mocked `HttpMessageHandler`, no real HTTP, no env vars).
+2. **Do not mix stacks within a project.** Don't add NUnit/Shouldly to `WebSmsNet.Tests`, and don't add xUnit/FluentAssertions to `WebSmsNet.UnitTests`. Don't introduce `[Theory]` where a `[Fact]` suffices in the xUnit project.
+3. **Do not migrate `WebSmsNet.Tests` to NUnit silently.** That project intentionally remains on the legacy stack. A full conversion is its own ticket — do not do it as a side-effect of another change. (Bogus, WireMock.Net, Moq are still **not** adopted in either project.)
+4. **New connector methods require tests in BOTH projects:**
+   - In `WebSmsNet.UnitTests`: a unit test that asserts the connector calls `connectionHandler.Post<T>` with the right endpoint and body shape (mocking the handler with NSubstitute or a fake subclass).
+   - In `WebSmsNet.Tests`: a DI-wiring test verifying the method is reachable through `IWebSmsApiClient`, and a serialization round-trip for the request / response DTOs involved.
+5. **Live-send tests** live in `WebSmsNet.Tests` only. They use env vars (`Websms_AccessToken`, `Websms_RecipientAddressList`) and **must throw** at setup when the vars are absent, matching the existing `MessagingTests` pattern. Do not silently `Skip` tests or add a "local dev" fallback that hardcodes credentials. **Never** add live-send tests to `WebSmsNet.UnitTests` — that project must stay hermetic (no network, no env vars).
+6. **Mocking the HTTP layer.** In `WebSmsNet.UnitTests`, mock `HttpMessageHandler` (e.g., `MockableHttpMessageHandler` + NSubstitute) at the `HttpClient` level. For testing the handler's virtual hooks, derive a fake `WebSmsApiConnectionHandler` subclass — the handler's virtual members make this straightforward.
+7. Do **not** add test-only code paths to production types. If a test needs an override, derive from the handler in the test project.
+8. Never commit real tokens, recipient MSISDNs, or customer data in test fixtures. Read them from environment variables.
 
 ## 7. Build & Verification Rules
 
@@ -158,7 +169,7 @@ Do not:
 - Instantiate `HttpClient` directly in new code. Always route through the injected / constructed `WebSmsApiConnectionHandler`.
 - Throw bare exceptions from connector methods for ordinary API failures — rely on `EnsureSuccess` (and its override points) so consumers can plug in custom error translation.
 - Convert `sealed record` response types to `class` or vice-versa without explicit need — both changes are breaking.
-- Add Newtonsoft.Json, AutoMapper, MediatR, NUnit, Shouldly, NSubstitute, Moq, or any framework not already on the dependency list.
+- Add Newtonsoft.Json, AutoMapper, MediatR, Moq, Bogus, WireMock.Net, or any framework not already on the dependency list. (NUnit, Shouldly, NSubstitute *are* on the dependency list — but only inside `WebSmsNet.UnitTests`. Do not pull them into `WebSmsNet.Tests` or production projects.)
 - Skip XML doc comments on public members — they are compiled into the NuGet packages and missing docs break the build.
 - Hardcode endpoint paths in multiple places — use the `const string` pattern on the connector.
 - Silently change the `WebSmsStatusCode` serialization from integer to string, or drop `[JsonNumberEnumConverter<WebSmsStatusCode>]` from a response property.
