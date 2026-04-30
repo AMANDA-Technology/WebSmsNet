@@ -119,11 +119,11 @@ If a change would require bumping any of these (e.g., moving libraries to `net10
 
 ## 6. Testing Rules
 
-1. **Framework:** NUnit 4.x + Shouldly 4.x + NSubstitute 5.x + Bogus + coverlet.collector. Use `[Test]` for individual tests and `[TestFixture]` for classes.
+1. **Framework:** NUnit 4.x + Shouldly 4.x + NSubstitute 5.x + WireMock.Net + Bogus + coverlet.collector. Use `[Test]` for individual tests and `[TestFixture]` for classes.
 2. **Projects:** Tests are split into `WebSmsNet.UnitTests`, `WebSmsNet.IntegrationTests`, and `WebSmsNet.E2eTests`. Use the appropriate project for new tests.
 3. **New connector methods require a test.** At minimum: a DI-wiring test verifying the method is reachable through `IWebSmsApiClient`, and a serialization round-trip for the request / response DTOs involved. Core library components (serialization, HTTP client extensions, binary content helpers) have full unit test coverage that must be maintained.
 4. **Live API tests** use env vars (`Websms_AccessToken`, `Websms_RecipientAddressList`) and **must skip** (using `Assume.That`) when the vars are absent.
-5. **Mocking:** Use NSubstitute for mocking dependencies. For isolation, you can also construct a fake `WebSmsApiConnectionHandler` subclass in the test project.
+5. **Mocking:** Use NSubstitute for mocking dependencies. For HTTP-level isolation in integration and E2E tests, use WireMock.Net to simulate the WebSms API backend. You can also construct a fake `WebSmsApiConnectionHandler` subclass in the test project.
 6. Do **not** add test-only code paths to production types. If a test needs an override, derive from the handler in the test project.
 7. Never commit real tokens, recipient MSISDNs, or customer data in test fixtures. Read them from environment variables.
 
