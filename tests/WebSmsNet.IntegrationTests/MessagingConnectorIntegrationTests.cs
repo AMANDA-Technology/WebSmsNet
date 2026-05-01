@@ -142,6 +142,114 @@ public class MessagingConnectorIntegrationTests
     }
 
     [Test]
+    public async Task SendTextMessage_OmitsUnsetOptionalFieldsFromJsonBody()
+    {
+        // Arrange — only required fields populated.
+        _server
+            .Given(Request.Create().WithPath("/rest/smsmessaging/text").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody(JsonSerializer.Serialize(new MessageSendResponse
+                {
+                    ClientMessageId = null,
+                    SmsCount = 1,
+                    StatusCode = WebSmsStatusCode.Ok,
+                    StatusMessage = "OK",
+                    TransferId = "tx-min"
+                }, WebSmsJsonSerialization.DefaultOptions)));
+
+        var request = new TextSmsSendRequest
+        {
+            RecipientAddressList = ["4367612345678"],
+            MessageContent = "minimal"
+        };
+
+        // Act
+        await _connector.SendTextMessage(request);
+
+        // Assert — none of the documented optional fields should appear when they are unset.
+        var body = SingleRequest().Body.ShouldNotBeNull();
+
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.TryGetProperty("clientMessageId", out _).ShouldBeFalse();
+        root.TryGetProperty("contentCategory", out _).ShouldBeFalse();
+        root.TryGetProperty("notificationCallbackUrl", out _).ShouldBeFalse();
+        root.TryGetProperty("priority", out _).ShouldBeFalse();
+        root.TryGetProperty("sendAsFlashSms", out _).ShouldBeFalse();
+        root.TryGetProperty("senderAddress", out _).ShouldBeFalse();
+        root.TryGetProperty("senderAddressType", out _).ShouldBeFalse();
+        root.TryGetProperty("test", out _).ShouldBeFalse();
+        root.TryGetProperty("validityPeriode", out _).ShouldBeFalse();
+        root.TryGetProperty("maxSmsPerMessage", out _).ShouldBeFalse();
+        root.TryGetProperty("messageType", out _).ShouldBeFalse();
+
+        root.GetProperty("messageContent").GetString().ShouldBe("minimal");
+        root.GetProperty("recipientAddressList").EnumerateArray().Single().GetString().ShouldBe("4367612345678");
+    }
+
+    [Test]
+    public async Task SendTextMessage_SerializesAllDocumentedOptionalFieldsWithCorrectJsonNamesAndCasing()
+    {
+        // Arrange
+        _server
+            .Given(Request.Create().WithPath("/rest/smsmessaging/text").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody(JsonSerializer.Serialize(new MessageSendResponse
+                {
+                    ClientMessageId = "client-full",
+                    SmsCount = 1,
+                    StatusCode = WebSmsStatusCode.Ok,
+                    StatusMessage = "OK",
+                    TransferId = "tx-full"
+                }, WebSmsJsonSerialization.DefaultOptions)));
+
+        var request = new TextSmsSendRequest
+        {
+            ClientMessageId = "client-full",
+            ContentCategory = ContentCategory.Advertisement,
+            NotificationCallbackUrl = "https://example.test/cb",
+            Priority = 9,
+            RecipientAddressList = ["4367612345678"],
+            SendAsFlashSms = false,
+            SenderAddress = "4367600000",
+            SenderAddressType = AddressType.International,
+            Test = true,
+            ValidityPeriod = 259200,
+            MaxSmsPerMessage = 1,
+            MessageContent = "all fields",
+            MessageType = MessageType.Voice
+        };
+
+        // Act
+        await _connector.SendTextMessage(request);
+
+        // Assert
+        var body = SingleRequest().Body.ShouldNotBeNull();
+
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.GetProperty("clientMessageId").GetString().ShouldBe("client-full");
+        root.GetProperty("contentCategory").GetString().ShouldBe("advertisement");
+        root.GetProperty("notificationCallbackUrl").GetString().ShouldBe("https://example.test/cb");
+        root.GetProperty("priority").GetInt32().ShouldBe(9);
+        root.GetProperty("recipientAddressList").EnumerateArray().Single().GetString().ShouldBe("4367612345678");
+        root.GetProperty("sendAsFlashSms").GetBoolean().ShouldBeFalse();
+        root.GetProperty("senderAddress").GetString().ShouldBe("4367600000");
+        root.GetProperty("senderAddressType").GetString().ShouldBe("international");
+        root.GetProperty("test").GetBoolean().ShouldBeTrue();
+        root.GetProperty("validityPeriode").GetInt32().ShouldBe(259200);
+        root.GetProperty("maxSmsPerMessage").GetInt32().ShouldBe(1);
+        root.GetProperty("messageContent").GetString().ShouldBe("all fields");
+        root.GetProperty("messageType").GetString().ShouldBe("voice");
+    }
+
+    [Test]
     public async Task SendTextMessage_SendsBearerAuthorizationHeader()
     {
         // Arrange
