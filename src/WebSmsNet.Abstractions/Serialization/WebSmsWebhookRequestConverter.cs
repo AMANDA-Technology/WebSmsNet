@@ -5,8 +5,10 @@ using WebSmsNet.Abstractions.Models;
 namespace WebSmsNet.Abstractions.Serialization;
 
 /// <summary>
-/// Responsible for converting WebSmsWebhookRequest objects to and from JSON
-/// during serialization and deserialization.
+/// Responsible for converting <see cref="WebSmsWebhookRequest.Base"/> objects to and from JSON
+/// during serialization and deserialization. The discriminator is the <c>messageType</c>
+/// JSON property and routes to <see cref="WebSmsWebhookRequest.Text"/>,
+/// <see cref="WebSmsWebhookRequest.Binary"/>, or <see cref="WebSmsWebhookRequest.DeliveryReport"/>.
 /// </summary>
 public class WebSmsWebhookRequestConverter : JsonConverter<WebSmsWebhookRequest.Base>
 {
@@ -16,14 +18,17 @@ public class WebSmsWebhookRequestConverter : JsonConverter<WebSmsWebhookRequest.
         using var document = JsonDocument.ParseValue(ref reader);
         var root = document.RootElement;
 
-        // Check if the messageType property exists
+        if (root.ValueKind is not JsonValueKind.Object)
+            throw new JsonException($"Expected JSON object for webhook request but got {root.ValueKind}.");
+
         if (!root.TryGetProperty("messageType", out var messageTypeElement))
             throw new JsonException("Missing messageType property.");
 
-        // Get the value of messageType
+        if (messageTypeElement.ValueKind is not JsonValueKind.String)
+            throw new JsonException($"Property 'messageType' must be a string but was {messageTypeElement.ValueKind}.");
+
         var messageType = messageTypeElement.GetString();
 
-        // Determine the type based on messageType
         return messageType switch
         {
             "text" => JsonSerializer.Deserialize<WebSmsWebhookRequest.Text>(root.GetRawText(), options),
@@ -36,7 +41,8 @@ public class WebSmsWebhookRequestConverter : JsonConverter<WebSmsWebhookRequest.
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, WebSmsWebhookRequest.Base value, JsonSerializerOptions options)
     {
-        // Serialize the object based on its runtime type
+        // Serialize the object based on its runtime type so the discriminator and subtype-only
+        // properties are emitted correctly.
         var type = value.GetType();
         JsonSerializer.Serialize(writer, value, type, options);
     }

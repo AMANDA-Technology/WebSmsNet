@@ -44,6 +44,7 @@ public class WebSmsWebhookTests
                                                          "deliveryReportMessageStatus": "delivered",
                                                          "sentOn": "2024-10-15T20:33:02.000+02:00",
                                                          "deliveredOn": "2024-10-15T20:33:03.000+02:00",
+                                                         "deliveredAs": "sms",
                                                          "clientMessageId": "11cf996f-c59f-40db-bcff-c8ce03ce3a72"
                                                      }
                                                      """;
@@ -56,7 +57,32 @@ public class WebSmsWebhookTests
         result.ShouldBeOfType<WebSmsWebhookRequest.Text>();
         result.MessageType.ShouldBe(WebhookMessageType.Text);
         result.NotificationId.ShouldBe("02c1d0051949fe70cbfa");
-        ((WebSmsWebhookRequest.Text)result).TextMessageContent.ShouldBe("Hello World");
+        var text = (WebSmsWebhookRequest.Text)result;
+        text.TextMessageContent.ShouldBe("Hello World");
+        text.SenderAddressType.ShouldBe(AddressType.International);
+        text.RecipientAddressType.ShouldBe(AddressType.National);
+        text.MessageFlashSms.ShouldBeFalse();
+    }
+
+    [Test]
+    public void Parse_String_TextJson_FlashSmsTrue_ParsesFlag()
+    {
+        const string json = """
+                            {
+                                "messageType": "text",
+                                "notificationId": "n",
+                                "senderAddress": "4367612345678",
+                                "senderAddressType": "international",
+                                "recipientAddress": "08282709900001",
+                                "recipientAddressType": "national",
+                                "messageFlashSms": true,
+                                "textMessageContent": "Flash"
+                            }
+                            """;
+
+        var text = (WebSmsWebhookRequest.Text)WebSmsWebhook.Parse(json);
+
+        text.MessageFlashSms.ShouldBeTrue();
     }
 
     [Test]
@@ -72,6 +98,27 @@ public class WebSmsWebhookTests
     }
 
     [Test]
+    public void Parse_String_BinaryJson_WithoutUserDataHeaderPresent_DefaultsToFalse()
+    {
+        const string json = """
+                            {
+                                "messageType": "binary",
+                                "notificationId": "n",
+                                "senderAddress": "4366012345678",
+                                "senderAddressType": "international",
+                                "recipientAddress": "066012345678",
+                                "recipientAddressType": "national",
+                                "binaryMessageContent": ["AQID"]
+                            }
+                            """;
+
+        var binary = (WebSmsWebhookRequest.Binary)WebSmsWebhook.Parse(json);
+
+        binary.UserDataHeaderPresent.ShouldBeFalse();
+        binary.BinaryMessageContent.ShouldBe(["AQID"]);
+    }
+
+    [Test]
     public void Parse_String_DeliveryReportJson_ReturnsDeliveryReportRequest()
     {
         var result = WebSmsWebhook.Parse(DeliveryReportWebhookJson);
@@ -81,7 +128,52 @@ public class WebSmsWebhookTests
         var report = (WebSmsWebhookRequest.DeliveryReport)result;
         report.TransferId.ShouldBe("00670eb55d00349e1111");
         report.DeliveryReportMessageStatus.ShouldBe(DeliveryReportMessageStatus.Delivered);
+        report.DeliveredOn.ShouldNotBeNull();
+        report.DeliveredAs.ShouldBe(DeliveredAs.Sms);
         report.ClientMessageId.ShouldBe("11cf996f-c59f-40db-bcff-c8ce03ce3a72");
+    }
+
+    [Test]
+    public void Parse_String_DeliveryReportJson_WithoutOptionalFields_LeavesThemNull()
+    {
+        const string json = """
+                            {
+                                "messageType": "deliveryReport",
+                                "notificationId": "n",
+                                "transferId": "t",
+                                "senderAddress": "41791111111",
+                                "deliveryReportMessageStatus": "rejected",
+                                "sentOn": "2024-10-15T20:33:02.000+02:00"
+                            }
+                            """;
+
+        var report = (WebSmsWebhookRequest.DeliveryReport)WebSmsWebhook.Parse(json);
+
+        report.DeliveryReportMessageStatus.ShouldBe(DeliveryReportMessageStatus.Rejected);
+        report.DeliveredOn.ShouldBeNull();
+        report.DeliveredAs.ShouldBeNull();
+        report.ClientMessageId.ShouldBeNull();
+    }
+
+    [Test]
+    public void Parse_String_DeliveryReportJson_FailoverSms_ParsesHyphenatedValue()
+    {
+        const string json = """
+                            {
+                                "messageType": "deliveryReport",
+                                "notificationId": "n",
+                                "transferId": "t",
+                                "senderAddress": "41791111111",
+                                "deliveryReportMessageStatus": "delivered",
+                                "sentOn": "2024-10-15T20:33:02.000+02:00",
+                                "deliveredOn": "2024-10-15T20:33:03.000+02:00",
+                                "deliveredAs": "failover-sms"
+                            }
+                            """;
+
+        var report = (WebSmsWebhookRequest.DeliveryReport)WebSmsWebhook.Parse(json);
+
+        report.DeliveredAs.ShouldBe(DeliveredAs.FailoverSms);
     }
 
     [Test]
@@ -98,6 +190,33 @@ public class WebSmsWebhookTests
     }
 
     [Test]
+    public void Parse_String_UnknownMessageType_ThrowsJsonException()
+    {
+        const string json = """
+                            {
+                                "messageType": "voice",
+                                "notificationId": "n",
+                                "senderAddress": "1"
+                            }
+                            """;
+
+        Should.Throw<JsonException>(() => WebSmsWebhook.Parse(json));
+    }
+
+    [Test]
+    public void Parse_String_MissingMessageType_ThrowsJsonException()
+    {
+        const string json = """
+                            {
+                                "notificationId": "n",
+                                "senderAddress": "1"
+                            }
+                            """;
+
+        Should.Throw<JsonException>(() => WebSmsWebhook.Parse(json));
+    }
+
+    [Test]
     public async Task Parse_Stream_TextJson_ReturnsTextRequest()
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(TextWebhookJson));
@@ -107,6 +226,28 @@ public class WebSmsWebhookTests
         result.ShouldBeOfType<WebSmsWebhookRequest.Text>();
         result.NotificationId.ShouldBe("02c1d0051949fe70cbfa");
         ((WebSmsWebhookRequest.Text)result).TextMessageContent.ShouldBe("Hello World");
+    }
+
+    [Test]
+    public async Task Parse_Stream_BinaryJson_ReturnsBinaryRequest()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(BinaryWebhookJson));
+
+        var result = await WebSmsWebhook.Parse(stream);
+
+        result.ShouldBeOfType<WebSmsWebhookRequest.Binary>();
+        ((WebSmsWebhookRequest.Binary)result).BinaryMessageContent.ShouldBe(["AQID", "BAUG"]);
+    }
+
+    [Test]
+    public async Task Parse_Stream_DeliveryReportJson_ReturnsDeliveryReportRequest()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(DeliveryReportWebhookJson));
+
+        var result = await WebSmsWebhook.Parse(stream);
+
+        result.ShouldBeOfType<WebSmsWebhookRequest.DeliveryReport>();
+        ((WebSmsWebhookRequest.DeliveryReport)result).TransferId.ShouldBe("00670eb55d00349e1111");
     }
 
     [Test]
@@ -153,7 +294,6 @@ public class WebSmsWebhookTests
             SenderAddressType = AddressType.International,
             RecipientAddress = "066012345678",
             RecipientAddressType = AddressType.National,
-            UserDataHeaderPresent = false,
             BinaryMessageContent = ["AQID"]
         };
 
@@ -175,8 +315,7 @@ public class WebSmsWebhookTests
             SenderAddress = "4366012345678",
             TransferId = "transfer1",
             DeliveryReportMessageStatus = DeliveryReportMessageStatus.Delivered,
-            SentOn = DateTimeOffset.Parse("2024-10-15T20:33:02.000+02:00"),
-            ClientMessageId = "client1"
+            SentOn = DateTimeOffset.Parse("2024-10-15T20:33:02.000+02:00")
         };
 
         var result = request.Match(
@@ -241,7 +380,6 @@ public class WebSmsWebhookTests
             SenderAddressType = AddressType.International,
             RecipientAddress = "066012345678",
             RecipientAddressType = AddressType.National,
-            UserDataHeaderPresent = false,
             BinaryMessageContent = ["AQID"]
         };
         var textCount = 0;
@@ -268,8 +406,7 @@ public class WebSmsWebhookTests
             SenderAddress = "4366012345678",
             TransferId = "transfer1",
             DeliveryReportMessageStatus = DeliveryReportMessageStatus.Delivered,
-            SentOn = DateTimeOffset.Parse("2024-10-15T20:33:02.000+02:00"),
-            ClientMessageId = "client1"
+            SentOn = DateTimeOffset.Parse("2024-10-15T20:33:02.000+02:00")
         };
         var textCount = 0;
         var binaryCount = 0;
@@ -311,12 +448,34 @@ public class WebSmsWebhookTests
     }
 
     [Test]
+    public void CreateOkResponse_SerializesStatusCodeAsInteger2000()
+    {
+        var response = WebSmsWebhook.CreateOkResponse();
+
+        var json = JsonSerializer.Serialize(response);
+
+        json.ShouldContain("\"statusCode\":2000");
+        json.ShouldContain("\"statusMessage\":\"OK\"");
+    }
+
+    [Test]
     public void CreateErrorResponse_ReturnsResponseWithInternalErrorAndProvidedMessage()
     {
         var response = WebSmsWebhook.CreateErrorResponse("boom");
 
         response.StatusCode.ShouldBe(WebSmsStatusCode.InternalError);
         response.StatusMessage.ShouldBe("boom");
+    }
+
+    [Test]
+    public void CreateErrorResponse_SerializesStatusCodeAsInteger5000()
+    {
+        var response = WebSmsWebhook.CreateErrorResponse("boom");
+
+        var json = JsonSerializer.Serialize(response);
+
+        json.ShouldContain("\"statusCode\":5000");
+        json.ShouldContain("\"statusMessage\":\"boom\"");
     }
 
     [Test]

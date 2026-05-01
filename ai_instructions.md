@@ -71,11 +71,11 @@ If a change would require bumping any of these (e.g., moving libraries to `net10
 - **Request bodies** inherit from `SmsSendRequest` (an abstract class with `required` properties + `get; set;`). `TextSmsSendRequest` and `BinarySmsSendRequest` are `sealed`. Keep the abstract base mutable — consumers compose requests property-by-property.
 - **Response bodies** are `sealed record` with `required ... { get; init; }`. Match this for any new response DTO.
 - Every serialized property has `[JsonPropertyName("...")]` matching the websms wire name exactly (camelCase, including quirks). Do not rely on `JsonSerializerDefaults.Web` name inference.
-- Nullable → nullable. If websms can return / accept `null`, the property type is nullable (`string?`, `int?`, `ContentCategory?`).
+- Nullable → nullable. If websms can return / accept `null`, or if a field is optional, the property type must be nullable (`string?`, `int?`, `bool?`, `ContentCategory?`). Do not use non-nullable `bool` or `int` for optional fields, as that would serialize default values (`false`, `0`) onto the wire when they were omitted by the caller.
 
 ### 3.6 Enums
 - Live in `src/WebSmsNet.Abstractions/Models/Enums/`. Each value has an XML `<summary>` with the human-readable meaning.
-- Default enum serialization is **camelCase string** via the global `JsonStringEnumConverter(JsonNamingPolicy.CamelCase)` in `WebSmsJsonSerialization.DefaultOptions`.
+- Default enum serialization is **camelCase string** via the global `JsonStringEnumConverter(JsonNamingPolicy.CamelCase)` in `WebSmsJsonSerialization.DefaultOptions`. If a specific wire value contains hyphens or deviates from camelCase (e.g., `failover-sms`), use `[JsonStringEnumMemberName("...")]` on the enum member.
 - **Exception:** `WebSmsStatusCode` serializes as its **integer** websms code (e.g., `2000`). It is the only enum whose on-the-wire form is numeric. Apply this on each property that uses it:
   ```csharp
   [JsonPropertyName("statusCode")]
@@ -184,3 +184,4 @@ Onboarding / documentation tasks (this issue) are handled by *developer* with a 
    - [BexioApiNet](https://github.com/AMANDA-Technology/BexioApiNet) — connector + handler + DI patterns, `ai_instructions.md` template.
    - [CashCtrlApiNet](https://github.com/AMANDA-Technology/CashCtrlApiNet) — three-package split, connector-per-domain shape.
 4. If still unclear, stop and surface the question in the task result rather than guessing.
+ the question in the task result rather than guessing.

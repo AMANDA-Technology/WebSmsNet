@@ -193,6 +193,129 @@ public class WebSmsApiClientE2eTests
     }
 
     [Test]
+    public async Task Messaging_SendBinarySms_WithAllOptionalFields_SendsExactlyTheDocumentedJsonFields()
+    {
+        // Arrange
+        var expectedResponse = new MessageSendResponse
+        {
+            ClientMessageId = "e2e-binary-full",
+            SmsCount = 2,
+            StatusCode = WebSmsStatusCode.Ok,
+            StatusMessage = "OK",
+            TransferId = "tx-e2e-binary-full"
+        };
+
+        _server
+            .Given(Request.Create().WithPath("/rest/smsmessaging/binary").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody(JsonSerializer.Serialize(expectedResponse, WebSmsJsonSerialization.DefaultOptions)));
+
+        await using var provider = BuildBearerProvider();
+        using var scope = provider.CreateScope();
+        var client = scope.ServiceProvider.GetRequiredService<IWebSmsApiClient>();
+
+        var request = new BinarySmsSendRequest
+        {
+            ClientMessageId = "e2e-binary-full",
+            ContentCategory = ContentCategory.Informational,
+            NotificationCallbackUrl = "https://example.test/cb",
+            Priority = 1,
+            RecipientAddressList = ["4367612345678"],
+            SendAsFlashSms = true,
+            SenderAddress = "AmandaTech",
+            SenderAddressType = AddressType.Alphanumeric,
+            Test = true,
+            ValidityPeriod = 60,
+            MessageContent = ["AQID", "BAUG"],
+            UserDataHeaderPresent = true
+        };
+
+        // Act
+        var response = await client.Messaging.SendBinaryMessage(request);
+
+        // Assert
+        response.ShouldBe(expectedResponse);
+
+        var logEntry = _server.LogEntries.Single();
+        var body = logEntry.RequestMessage.ShouldNotBeNull().Body.ShouldNotBeNull();
+
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.GetProperty("clientMessageId").GetString().ShouldBe("e2e-binary-full");
+        root.GetProperty("contentCategory").GetString().ShouldBe("informational");
+        root.GetProperty("notificationCallbackUrl").GetString().ShouldBe("https://example.test/cb");
+        root.GetProperty("priority").GetInt32().ShouldBe(1);
+        root.GetProperty("recipientAddressList").EnumerateArray().Single().GetString().ShouldBe("4367612345678");
+        root.GetProperty("sendAsFlashSms").GetBoolean().ShouldBeTrue();
+        root.GetProperty("senderAddress").GetString().ShouldBe("AmandaTech");
+        root.GetProperty("senderAddressType").GetString().ShouldBe("alphanumeric");
+        root.GetProperty("test").GetBoolean().ShouldBeTrue();
+        root.GetProperty("validityPeriode").GetInt32().ShouldBe(60);
+        root.GetProperty("messageContent").EnumerateArray().Select(e => e.GetString()).ToList()
+            .ShouldBe(["AQID", "BAUG"]);
+        root.GetProperty("userDataHeaderPresent").GetBoolean().ShouldBeTrue();
+        // Binary endpoint does not accept text-only fields.
+        root.TryGetProperty("maxSmsPerMessage", out _).ShouldBeFalse();
+        root.TryGetProperty("messageType", out _).ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Messaging_SendBinarySms_WithMinimalFields_OmitsOptionalFieldsFromWire()
+    {
+        // Arrange
+        _server
+            .Given(Request.Create().WithPath("/rest/smsmessaging/binary").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody(JsonSerializer.Serialize(new MessageSendResponse
+                {
+                    ClientMessageId = null,
+                    SmsCount = 1,
+                    StatusCode = WebSmsStatusCode.Ok,
+                    StatusMessage = "OK",
+                    TransferId = "tx-e2e-bin-min"
+                }, WebSmsJsonSerialization.DefaultOptions)));
+
+        await using var provider = BuildBearerProvider();
+        using var scope = provider.CreateScope();
+        var client = scope.ServiceProvider.GetRequiredService<IWebSmsApiClient>();
+
+        var request = new BinarySmsSendRequest
+        {
+            RecipientAddressList = ["4367612345678"],
+            MessageContent = ["AQID"]
+        };
+
+        // Act
+        await client.Messaging.SendBinaryMessage(request);
+
+        // Assert
+        var logEntry = _server.LogEntries.Single();
+        var body = logEntry.RequestMessage.ShouldNotBeNull().Body.ShouldNotBeNull();
+
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.TryGetProperty("clientMessageId", out _).ShouldBeFalse();
+        root.TryGetProperty("contentCategory", out _).ShouldBeFalse();
+        root.TryGetProperty("notificationCallbackUrl", out _).ShouldBeFalse();
+        root.TryGetProperty("priority", out _).ShouldBeFalse();
+        root.TryGetProperty("sendAsFlashSms", out _).ShouldBeFalse();
+        root.TryGetProperty("senderAddress", out _).ShouldBeFalse();
+        root.TryGetProperty("senderAddressType", out _).ShouldBeFalse();
+        root.TryGetProperty("test", out _).ShouldBeFalse();
+        root.TryGetProperty("validityPeriode", out _).ShouldBeFalse();
+        root.TryGetProperty("userDataHeaderPresent", out _).ShouldBeFalse();
+
+        root.GetProperty("messageContent").EnumerateArray().Single().GetString().ShouldBe("AQID");
+        root.GetProperty("recipientAddressList").EnumerateArray().Single().GetString().ShouldBe("4367612345678");
+    }
+
+    [Test]
     public async Task Messaging_RegisteredViaDi_ResolvesAndDispatchesRequestToCorrectEndpoint()
     {
         // Arrange
@@ -227,5 +350,112 @@ public class WebSmsApiClientE2eTests
         var requestMessage = logEntry.RequestMessage.ShouldNotBeNull();
         requestMessage.AbsolutePath.ShouldBe("/rest/smsmessaging/text");
         requestMessage.Method.ShouldBe("POST");
+    }
+
+    [Test]
+    public async Task Messaging_SendTextSms_WithAllOptionalFields_SendsExactlyTheDocumentedJsonFields()
+    {
+        // Arrange
+        var expectedResponse = new MessageSendResponse
+        {
+            ClientMessageId = "e2e-full",
+            SmsCount = 1,
+            StatusCode = WebSmsStatusCode.Ok,
+            StatusMessage = "OK",
+            TransferId = "tx-e2e-full"
+        };
+
+        _server
+            .Given(Request.Create().WithPath("/rest/smsmessaging/text").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody(JsonSerializer.Serialize(expectedResponse, WebSmsJsonSerialization.DefaultOptions)));
+
+        await using var provider = BuildBearerProvider();
+        using var scope = provider.CreateScope();
+        var client = scope.ServiceProvider.GetRequiredService<IWebSmsApiClient>();
+
+        var request = new TextSmsSendRequest
+        {
+            ClientMessageId = "e2e-full",
+            ContentCategory = ContentCategory.Informational,
+            NotificationCallbackUrl = "https://example.test/cb",
+            Priority = 1,
+            RecipientAddressList = ["4367612345678"],
+            SendAsFlashSms = true,
+            SenderAddress = "AmandaTech",
+            SenderAddressType = AddressType.Alphanumeric,
+            Test = true,
+            ValidityPeriod = 60,
+            MaxSmsPerMessage = 1,
+            MessageContent = "all fields populated",
+            MessageType = MessageType.Default
+        };
+
+        // Act
+        var response = await client.Messaging.SendTextMessage(request);
+
+        // Assert
+        response.ShouldBe(expectedResponse);
+
+        var logEntry = _server.LogEntries.Single();
+        var body = logEntry.RequestMessage.ShouldNotBeNull().Body.ShouldNotBeNull();
+
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.GetProperty("clientMessageId").GetString().ShouldBe("e2e-full");
+        root.GetProperty("contentCategory").GetString().ShouldBe("informational");
+        root.GetProperty("notificationCallbackUrl").GetString().ShouldBe("https://example.test/cb");
+        root.GetProperty("priority").GetInt32().ShouldBe(1);
+        root.GetProperty("recipientAddressList").EnumerateArray().Single().GetString().ShouldBe("4367612345678");
+        root.GetProperty("sendAsFlashSms").GetBoolean().ShouldBeTrue();
+        root.GetProperty("senderAddress").GetString().ShouldBe("AmandaTech");
+        root.GetProperty("senderAddressType").GetString().ShouldBe("alphanumeric");
+        root.GetProperty("test").GetBoolean().ShouldBeTrue();
+        root.GetProperty("validityPeriode").GetInt32().ShouldBe(60);
+        root.GetProperty("maxSmsPerMessage").GetInt32().ShouldBe(1);
+        root.GetProperty("messageContent").GetString().ShouldBe("all fields populated");
+        root.GetProperty("messageType").GetString().ShouldBe("default");
+    }
+
+    [Test]
+    public async Task Messaging_SendTextSms_WhenApiOmitsClientMessageId_DeserializesResponseSuccessfully()
+    {
+        // Arrange — clientMessageId is optional in the request, and the API only echoes it back when supplied.
+        _server
+            .Given(Request.Create().WithPath("/rest/smsmessaging/text").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody("""
+                          {
+                            "smsCount": 1,
+                            "statusCode": 2000,
+                            "statusMessage": "OK",
+                            "transferId": "tx-e2e-no-cmid"
+                          }
+                          """));
+
+        await using var provider = BuildBearerProvider();
+        using var scope = provider.CreateScope();
+        var client = scope.ServiceProvider.GetRequiredService<IWebSmsApiClient>();
+
+        var request = new TextSmsSendRequest
+        {
+            RecipientAddressList = ["4367612345678"],
+            MessageContent = "no client message id"
+        };
+
+        // Act
+        var response = await client.Messaging.SendTextMessage(request);
+
+        // Assert
+        response.ClientMessageId.ShouldBeNull();
+        response.SmsCount.ShouldBe(1);
+        response.StatusCode.ShouldBe(WebSmsStatusCode.Ok);
+        response.StatusMessage.ShouldBe("OK");
+        response.TransferId.ShouldBe("tx-e2e-no-cmid");
     }
 }

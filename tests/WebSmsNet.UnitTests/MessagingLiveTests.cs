@@ -8,6 +8,7 @@ using WebSmsNet.Abstractions.Models.Enums;
 namespace WebSmsNet.UnitTests;
 
 [TestFixture]
+[Category("LiveTest")]
 public class MessagingLiveTests
 {
     private IWebSmsApiClient _webSmsApiClient = null!;
