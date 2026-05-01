@@ -18,7 +18,7 @@ Unofficial .NET client library for the [LINK Mobility websms Messaging REST API 
 | HTTP             | `System.Net.Http.HttpClient` via `IHttpClientFactory` (ASP.NET Core package) |
 | Serialization    | `System.Text.Json` (web defaults + camel-case enum converter)                |
 | DI integration   | ASP.NET Core (`Microsoft.Extensions.DependencyInjection`, `Microsoft.Extensions.Http`) |
-| Testing          | NUnit + Shouldly + NSubstitute + Bogus + coverlet.collector                  |
+| Testing          | NUnit + Shouldly + NSubstitute + WireMock.Net + Bogus + coverlet.collector   |
 | Build            | MSBuild (SDK-style csproj) — `GeneratePackageOnBuild` + `GenerateDocumentationFile` |
 | CI/CD            | GitHub Actions (`main.yml`, `codeql-analysis.yml`, `sonar-analysis.yml`)     |
 | License          | MIT                                                                          |
@@ -190,3 +190,4 @@ For full rules, see [`ai_instructions.md`](./ai_instructions.md). At a glance:
 - **Build before finishing.** Run `dotnet build` (0 errors, 0 warnings — XML doc warnings count) and `dotnet test` where feasible.
 - **Commit before finishing.** Every agent run ends with either a clean tree or a new commit. Never leave staged/unstaged diffs behind.
 - **Secrets.** Never write tokens, recipient MSISDNs, or customer data into source, tests, fixtures, or docs. Reference env vars by name only.
+sts, fixtures, or docs. Reference env vars by name only.
