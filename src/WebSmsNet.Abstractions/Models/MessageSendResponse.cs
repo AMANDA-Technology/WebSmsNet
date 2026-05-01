@@ -12,10 +12,11 @@ namespace WebSmsNet.Abstractions.Models;
 public sealed record MessageSendResponse
 {
     /// <summary>
-    /// An identifier for the message as specified by the client.
+    /// The identifier for the message as specified by the client in the request, echoed back by the API.
+    /// <c>null</c> if no <see cref="SmsSendRequest.ClientMessageId"/> was provided in the request.
     /// </summary>
     [JsonPropertyName("clientMessageId")]
-    public required string ClientMessageId { get; init; }
+    public string? ClientMessageId { get; init; }
 
     /// <summary>
     /// The number of SMS parts the message was divided into.
@@ -24,7 +25,7 @@ public sealed record MessageSendResponse
     public required int SmsCount { get; init; }
 
     /// <summary>
-    /// The status code returned by the API.
+    /// The status code returned by the API. See <see cref="WebSmsStatusCode"/> for the documented values.
     /// </summary>
     [JsonPropertyName("statusCode")]
     [JsonConverter(typeof(JsonNumberEnumConverter<WebSmsStatusCode>))]
