@@ -17,7 +17,7 @@ using System.Collections.Generic;
 public static class WebSmsWebhookRequest
 {
     /// <summary>
-    /// Base class for websms webhook requests
+    /// Base class for websms webhook requests.
     /// </summary>
     public abstract class Base
     {
@@ -31,7 +31,7 @@ public static class WebSmsWebhookRequest
         public required WebhookMessageType MessageType { get; init; }
 
         /// <summary>
-        /// 20-digit identifiFcation of your notification.
+        /// 20-character identification of your notification.
         /// MessageTypes: text, binary, deliveryReport
         /// Example: "050f9005180a2a212469"
         /// </summary>
@@ -39,7 +39,9 @@ public static class WebSmsWebhookRequest
         public required string NotificationId { get; init; }
 
         /// <summary>
-        /// Originator of the sender, e.g., "4366012345678".
+        /// Originator of the message. For text and binary notifications this is the
+        /// mobile-originated sender; for delivery reports this is the address that
+        /// originally submitted the message.
         /// MessageTypes: text, binary, deliveryReport
         /// Example: "4366012345678"
         /// </summary>
@@ -54,6 +56,7 @@ public static class WebSmsWebhookRequest
     {
         /// <summary>
         /// Indicates whether the received message is an SMS or a flash-SMS.
+        /// Optional; defaults to <c>false</c> when omitted by the platform.
         /// MessageTypes: text, binary
         /// Example: true
         /// </summary>
@@ -69,8 +72,9 @@ public static class WebSmsWebhookRequest
         public required AddressType SenderAddressType { get; init; }
 
         /// <summary>
-        /// Sender's address, can be international, national, or a shortcode.
-        /// MessageTypes: text, binary, deliveryReport
+        /// Recipient's address (your platform-side address that received the message).
+        /// Can be international, national, or a shortcode.
+        /// MessageTypes: text, binary
         /// Example: "066012345678"
         /// </summary>
         [JsonPropertyName("recipientAddress")]
@@ -108,11 +112,12 @@ public static class WebSmsWebhookRequest
     {
         /// <summary>
         /// Indicates whether a user-data-header is included within a Base64 encoded byte segment.
+        /// Optional; defaults to <c>false</c> when omitted by the platform.
         /// MessageTypes: binary
         /// Example: true
         /// </summary>
         [JsonPropertyName("userDataHeaderPresent")]
-        public required bool UserDataHeaderPresent { get; init; }
+        public bool UserDataHeaderPresent { get; init; }
 
         /// <summary>
         /// Content of a binary SMS as an array of Base64 strings (URL safe).
@@ -154,7 +159,9 @@ public static class WebSmsWebhookRequest
         public required DateTimeOffset SentOn { get; init; }
 
         /// <summary>
-        /// Time when the message was submitted to the mobile operator's network.
+        /// Time when the message was actually delivered to the recipient.
+        /// Optional; <c>null</c> when the message has not been (yet) delivered
+        /// (for example for "undelivered", "expired", "rejected", or "accepted" reports).
         /// ISO 8601 timestamp, e.g., "2013-05-27T13:36:00.000+02:00".
         /// MessageTypes: deliveryReport
         /// Example: 2013-05-27T13:36:00.000+02:00
@@ -164,6 +171,7 @@ public static class WebSmsWebhookRequest
 
         /// <summary>
         /// Delivery method used.
+        /// Optional; <c>null</c> when not reported by the platform.
         /// Possible values: "sms", "push", "failover-sms", "voice".
         /// MessageTypes: deliveryReport
         /// Example: DeliveredAs.Sms
@@ -172,10 +180,12 @@ public static class WebSmsWebhookRequest
         public DeliveredAs? DeliveredAs { get; init; }
 
         /// <summary>
-        /// In the case of a delivery report, contains the optional submitted message ID.
+        /// In the case of a delivery report, contains the optional submitted message ID
+        /// that was provided in the original send request.
+        /// Optional; <c>null</c> when no clientMessageId was supplied with the original message.
         /// MessageTypes: deliveryReport
         /// </summary>
         [JsonPropertyName("clientMessageId")]
-        public required string ClientMessageId { get; init; }
+        public string? ClientMessageId { get; init; }
     }
 }
