@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace WebSmsNet.Abstractions.Models.Enums;
 
@@ -21,7 +21,7 @@ public enum DeliveredAs
     /// <summary>
     /// Indicates that the notification was delivered via failover to SMS.
     /// </summary>
-    [EnumMember(Value = "failover-sms")]
+    [JsonStringEnumMemberName("failover-sms")]
     FailoverSms,
 
     /// <summary>
