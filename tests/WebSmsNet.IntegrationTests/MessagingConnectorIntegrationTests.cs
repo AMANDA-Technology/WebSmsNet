@@ -364,6 +364,115 @@ public class MessagingConnectorIntegrationTests
     }
 
     [Test]
+    public async Task SendBinaryMessage_OmitsUnsetOptionalFieldsFromJsonBody()
+    {
+        // Arrange — only required fields populated.
+        _server
+            .Given(Request.Create().WithPath("/rest/smsmessaging/binary").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody(JsonSerializer.Serialize(new MessageSendResponse
+                {
+                    ClientMessageId = null,
+                    SmsCount = 1,
+                    StatusCode = WebSmsStatusCode.Ok,
+                    StatusMessage = "OK",
+                    TransferId = "tx-bin-min"
+                }, WebSmsJsonSerialization.DefaultOptions)));
+
+        var request = new BinarySmsSendRequest
+        {
+            RecipientAddressList = ["4367612345678"],
+            MessageContent = ["AQID"]
+        };
+
+        // Act
+        await _connector.SendBinaryMessage(request);
+
+        // Assert — none of the documented optional fields should appear when they are unset.
+        var body = SingleRequest().Body.ShouldNotBeNull();
+
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.TryGetProperty("clientMessageId", out _).ShouldBeFalse();
+        root.TryGetProperty("contentCategory", out _).ShouldBeFalse();
+        root.TryGetProperty("notificationCallbackUrl", out _).ShouldBeFalse();
+        root.TryGetProperty("priority", out _).ShouldBeFalse();
+        root.TryGetProperty("sendAsFlashSms", out _).ShouldBeFalse();
+        root.TryGetProperty("senderAddress", out _).ShouldBeFalse();
+        root.TryGetProperty("senderAddressType", out _).ShouldBeFalse();
+        root.TryGetProperty("test", out _).ShouldBeFalse();
+        root.TryGetProperty("validityPeriode", out _).ShouldBeFalse();
+        root.TryGetProperty("userDataHeaderPresent", out _).ShouldBeFalse();
+        // The binary endpoint does not accept maxSmsPerMessage or messageType.
+        root.TryGetProperty("maxSmsPerMessage", out _).ShouldBeFalse();
+        root.TryGetProperty("messageType", out _).ShouldBeFalse();
+
+        root.GetProperty("messageContent").EnumerateArray().Single().GetString().ShouldBe("AQID");
+        root.GetProperty("recipientAddressList").EnumerateArray().Single().GetString().ShouldBe("4367612345678");
+    }
+
+    [Test]
+    public async Task SendBinaryMessage_SerializesAllDocumentedOptionalFieldsWithCorrectJsonNamesAndCasing()
+    {
+        // Arrange
+        _server
+            .Given(Request.Create().WithPath("/rest/smsmessaging/binary").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody(JsonSerializer.Serialize(new MessageSendResponse
+                {
+                    ClientMessageId = "bin-full",
+                    SmsCount = 2,
+                    StatusCode = WebSmsStatusCode.Ok,
+                    StatusMessage = "OK",
+                    TransferId = "tx-bin-full"
+                }, WebSmsJsonSerialization.DefaultOptions)));
+
+        var request = new BinarySmsSendRequest
+        {
+            ClientMessageId = "bin-full",
+            ContentCategory = ContentCategory.Advertisement,
+            NotificationCallbackUrl = "https://example.test/cb",
+            Priority = 9,
+            RecipientAddressList = ["4367612345678"],
+            SendAsFlashSms = false,
+            SenderAddress = "4367600000",
+            SenderAddressType = AddressType.International,
+            Test = true,
+            ValidityPeriod = 259200,
+            MessageContent = ["AQID", "BAUG"],
+            UserDataHeaderPresent = true
+        };
+
+        // Act
+        await _connector.SendBinaryMessage(request);
+
+        // Assert
+        var body = SingleRequest().Body.ShouldNotBeNull();
+
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.GetProperty("clientMessageId").GetString().ShouldBe("bin-full");
+        root.GetProperty("contentCategory").GetString().ShouldBe("advertisement");
+        root.GetProperty("notificationCallbackUrl").GetString().ShouldBe("https://example.test/cb");
+        root.GetProperty("priority").GetInt32().ShouldBe(9);
+        root.GetProperty("recipientAddressList").EnumerateArray().Single().GetString().ShouldBe("4367612345678");
+        root.GetProperty("sendAsFlashSms").GetBoolean().ShouldBeFalse();
+        root.GetProperty("senderAddress").GetString().ShouldBe("4367600000");
+        root.GetProperty("senderAddressType").GetString().ShouldBe("international");
+        root.GetProperty("test").GetBoolean().ShouldBeTrue();
+        root.GetProperty("validityPeriode").GetInt32().ShouldBe(259200);
+        root.GetProperty("messageContent").EnumerateArray().Select(e => e.GetString()).ToList()
+            .ShouldBe(["AQID", "BAUG"]);
+        root.GetProperty("userDataHeaderPresent").GetBoolean().ShouldBeTrue();
+    }
+
+    [Test]
     public async Task SendBinaryMessage_SendsBearerAuthorizationHeader()
     {
         // Arrange
